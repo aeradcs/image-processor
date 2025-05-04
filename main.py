@@ -1,72 +1,55 @@
-import pytesseract
 from PIL import Image
-import os
+import pytesseract
+from langdetect import detect
+from pdf2image import convert_from_path
+import cv2
+import numpy as np
 
-# Захардкоженный путь к изображению
-IMAGE_PATH = "/home/nemo/PycharmProjects/imageProcessor/img_3.png"
+# Укажи путь к бинарнику Tesseract (если не system-wide — пропиши свой)
+pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
 
+# Хардкод пути
+file_path = '/home/nemo/PycharmProjects/imageProcessor/img_2.png'
 
-def extract_text_with_optimal_params(image_path):
-    """
-    Извлекает текст из изображения используя оптимальные параметры для каждого языка
+# --- Предобработка изображения ---
+def preprocess_image_for_ocr(image_path):
+    img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
 
-    Args:
-        image_path (str): Путь к изображению
+    # увеличение, шумоподавление, бинаризация
+    img = cv2.resize(img, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+    img = cv2.bilateralFilter(img, 11, 17, 17)
+    img = cv2.adaptiveThreshold(img, 255,
+                                 cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                 cv2.THRESH_BINARY, 31, 2)
 
-    Returns:
-        dict: Результаты распознавания для каждой конфигурации
-    """
-    try:
-        # Проверяем существование файла
-        if not os.path.exists(image_path):
-            return {"error": f"Файл {image_path} не найден"}
+    return Image.fromarray(img)
 
-        # Открываем изображение
-        image = Image.open(image_path)
+# --- Распознавание текста ---
+def image_to_text(image: Image.Image) -> str:
+    config = r'--oem 3 --psm 6'
+    return pytesseract.image_to_string(image, lang='rus+eng', config=config)
 
-        results = {}
+# --- Главная логика ---
+def extract_text_and_lang(file_path):
+    images = []
 
-        # Оптимальная конфигурация для русского текста
-        custom_config_rus = r'--oem 3 --psm 6'
-        text_rus = pytesseract.image_to_string(image, config=custom_config_rus, lang='rus')
-        results["rus_оптимальный"] = text_rus
+    if file_path.lower().endswith(('.png', '.jpg', '.jpeg')):
+        image = preprocess_image_for_ocr(file_path)
+        images = [image]
+    elif file_path.lower().endswith('.pdf'):
+        pages = convert_from_path(file_path, dpi=300)
+        images = [Image.fromarray(cv2.cvtColor(np.array(p), cv2.COLOR_RGB2BGR)) for p in pages]
+    else:
+        raise ValueError("Unsupported file format")
 
-        # Оптимальная конфигурация для английского текста
-        custom_config_eng = r'--oem 1 --psm 4'
-        text_eng = pytesseract.image_to_string(image, config=custom_config_eng, lang='eng')
-        results["eng_оптимальный"] = text_eng
+    text_blocks = [image_to_text(img) for img in images]
+    full_text = "\n".join(text_blocks).strip()
+    language = detect(full_text) if full_text else "unknown"
 
-        # Определяем язык изображения
-        try:
-            lang_detect = pytesseract.image_to_osd(image)
-            results["определение_языка"] = lang_detect
-        except:
-            results["определение_языка"] = "Не удалось определить язык"
+    return full_text, language
 
-        return results
-    except Exception as e:
-        return {"error": f"Ошибка при обработке изображения: {e}"}
-
-
-def main():
-    print("\n===== НАЧАЛО ОБРАБОТКИ ИЗОБРАЖЕНИЯ =====\n")
-    print(f"Обрабатываю изображение: {IMAGE_PATH}")
-
-    # Получаем результаты с оптимальными параметрами
-    results = extract_text_with_optimal_params(IMAGE_PATH)
-
-    # Выводим результаты
-    for config_name, text in results.items():
-        print(f"\n===== РЕЗУЛЬТАТ ({config_name}) =====\n")
-        print(text)
-
-    print("\n===== ОБРАБОТКА ЗАВЕРШЕНА =====\n")
-
-    print("\n===== РЕКОМЕНДАЦИИ =====\n")
-    print("Для русских документов используйте параметры: --oem 3 --psm 6 lang='rus'")
-    print("Для английских документов используйте параметры: --oem 1 --psm 4 lang='eng'")
-    print("Для смешанных документов выбирайте конфигурацию в зависимости от преобладающего языка")
-
-
-if __name__ == "__main__":
-    main()
+# --- Запуск ---
+text, lang = extract_text_and_lang(file_path)
+print(f"Detected language: {lang}\n")
+print("Recognized text:\n")
+print(text)

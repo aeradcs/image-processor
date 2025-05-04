@@ -1,52 +1,55 @@
-import pytesseract
 from PIL import Image
-import os
+import pytesseract
+from langdetect import detect
+from pdf2image import convert_from_path
+import cv2
+import numpy as np
 
-# Захардкоженный путь к изображению
-IMAGE_PATH = "/home/nemo/PycharmProjects/imageProcessor/img.png"
+# Укажи путь к бинарнику Tesseract (если не system-wide — пропиши свой)
+pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
 
+# Хардкод пути
+file_path = '/home/nemo/PycharmProjects/imageProcessor/img_2.png'
 
-def extract_text_from_image(image_path, lang='rus'):
-    """
-    Извлекает текст из изображения используя Tesseract OCR
+# --- Предобработка изображения ---
+def preprocess_image_for_ocr(image_path):
+    img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
 
-    Args:
-        image_path (str): Путь к изображению
-        lang (str): Язык для распознавания
+    # увеличение, шумоподавление, бинаризация
+    img = cv2.resize(img, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+    img = cv2.bilateralFilter(img, 11, 17, 17)
+    img = cv2.adaptiveThreshold(img, 255,
+                                 cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                 cv2.THRESH_BINARY, 31, 2)
 
-    Returns:
-        str: Извлеченный текст
-    """
-    try:
-        # Проверяем существование файла
-        if not os.path.exists(image_path):
-            return f"Ошибка: Файл {image_path} не найден"
+    return Image.fromarray(img)
 
-        # Открываем изображение
-        image = Image.open(image_path)
+# --- Распознавание текста ---
+def image_to_text(image: Image.Image) -> str:
+    config = r'--oem 3 --psm 6'
+    return pytesseract.image_to_string(image, lang='rus+eng', config=config)
 
-        # Настройка параметров Tesseract
-        custom_config = r'--oem 3 --psm 6'
+# --- Главная логика ---
+def extract_text_and_lang(file_path):
+    images = []
 
-        # Распознавание текста
-        text = pytesseract.image_to_string(image, config=custom_config, lang=lang)
+    if file_path.lower().endswith(('.png', '.jpg', '.jpeg')):
+        image = preprocess_image_for_ocr(file_path)
+        images = [image]
+    elif file_path.lower().endswith('.pdf'):
+        pages = convert_from_path(file_path, dpi=300)
+        images = [Image.fromarray(cv2.cvtColor(np.array(p), cv2.COLOR_RGB2BGR)) for p in pages]
+    else:
+        raise ValueError("Unsupported file format")
 
-        return text
-    except Exception as e:
-        return f"Ошибка при обработке изображения: {e}"
+    text_blocks = [image_to_text(img) for img in images]
+    full_text = "\n".join(text_blocks).strip()
+    language = detect(full_text) if full_text else "unknown"
 
+    return full_text, language
 
-def main():
-    print("\n===== НАЧАЛО ОБРАБОТКИ ИЗОБРАЖЕНИЯ =====\n")
-    print(f"Обрабатываю изображение: {IMAGE_PATH}")
-
-    # Базовое распознавание
-    print("\n===== РЕЗУЛЬТАТ РАСПОЗНАВАНИЯ =====\n")
-    text = extract_text_from_image(IMAGE_PATH)
-    print(text)
-
-    print("\n===== ОБРАБОТКА ЗАВЕРШЕНА =====\n")
-
-
-if __name__ == "__main__":
-    main()
+# --- Запуск ---
+text, lang = extract_text_and_lang(file_path)
+print(f"Detected language: {lang}\n")
+print("Recognized text:\n")
+print(text)
