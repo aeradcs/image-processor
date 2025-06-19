@@ -11,6 +11,7 @@ pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
 # Хардкод пути
 file_path = '/home/nemo/PycharmProjects/imageProcessor/img_2.png'
 
+
 # --- Предобработка изображения ---
 def preprocess_image_for_ocr(image_path):
     img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
@@ -19,15 +20,17 @@ def preprocess_image_for_ocr(image_path):
     img = cv2.resize(img, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
     img = cv2.bilateralFilter(img, 11, 17, 17)
     img = cv2.adaptiveThreshold(img, 255,
-                                 cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                 cv2.THRESH_BINARY, 31, 2)
+                                cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                cv2.THRESH_BINARY, 31, 2)
 
     return Image.fromarray(img)
+
 
 # --- Распознавание текста ---
 def image_to_text(image: Image.Image) -> str:
     config = r'--oem 3 --psm 6'
     return pytesseract.image_to_string(image, lang='rus+eng', config=config)
+
 
 # --- Главная логика ---
 def extract_text_and_lang(file_path):
@@ -48,8 +51,25 @@ def extract_text_and_lang(file_path):
 
     return full_text, language
 
+
+# --- НОВАЯ ФУНКЦИЯ ДЛЯ ЕДИНОГО ИНТЕРФЕЙСА ---
+def process(input_file):
+    """
+    Единый интерфейс для русского процессора
+
+    Args:
+        input_file (str): Путь к файлу
+
+    Returns:
+        tuple: (lang, text) - язык и текст
+    """
+    text, lang = extract_text_and_lang(input_file)
+    return lang, text
+
+
 # --- Запуск ---
-text, lang = extract_text_and_lang(file_path)
-print(f"Detected language: {lang}\n")
-print("Recognized text:\n")
-print(text)
+if __name__ == "__main__":
+    text, lang = extract_text_and_lang(file_path)
+    print(f"Detected language: {lang}\n")
+    print("Recognized text:\n")
+    print(text)

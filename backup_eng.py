@@ -1,6 +1,7 @@
 import pytesseract
 from PIL import Image
 import os
+from langdetect import detect
 
 # Захардкоженный путь к изображению
 IMAGE_PATH = "/home/nemo/PycharmProjects/imageProcessor/img_1.png"
@@ -54,6 +55,30 @@ def try_different_configs(image_path):
             results[config_name] = text
 
     return results
+
+
+# --- НОВАЯ ФУНКЦИЯ ДЛЯ ЕДИНОГО ИНТЕРФЕЙСА ---
+def process(input_file):
+    """
+    Единый интерфейс для английского процессора
+
+    Args:
+        input_file (str): Путь к файлу
+
+    Returns:
+        tuple: (lang, text) - язык и текст
+    """
+    # Пробуем различные конфигурации
+    results = try_different_configs(input_file)
+
+    # Находим самый длинный результат (предположительно лучший)
+    best_config = max(results.items(), key=lambda x: len(x[1]))[0]
+    best_text = results[best_config]
+
+    # Определяем язык
+    language = detect(best_text) if best_text.strip() else "unknown"
+
+    return language, best_text
 
 
 def main():
