@@ -2,8 +2,7 @@ from langdetect import detect
 from PIL import Image
 import pytesseract
 from pdf2image import convert_from_path
-import backup
-import backup_eng
+from core import backup, backup_eng
 
 pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
 
