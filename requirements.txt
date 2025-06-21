@@ -1,0 +1,10 @@
+pytesseract
+Pillow
+opencv-python
+pdf2image
+langdetect
+boto3
+kafka-python
+python-dotenv
+structlog
+numpy
