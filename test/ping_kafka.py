@@ -16,7 +16,7 @@ test_files = [
 ]
 
 # Выберите какой файл тестировать (можно изменить индекс)
-selected_file = test_files[0]  # img.png
+selected_file = test_files[2]  # img.png
 
 # Формируем сообщение
 test_message = {

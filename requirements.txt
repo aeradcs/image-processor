@@ -1,10 +1,22 @@
-pytesseract
-Pillow
-opencv-python
-pdf2image
-langdetect
-boto3
-kafka-python
-python-dotenv
-structlog
-numpy
+# AWS S3 integration
+boto3==1.34.0
+
+# Kafka messaging
+kafka-python==2.0.2
+
+# Environment variables
+python-dotenv==1.0.0
+
+# Language detection
+langdetect==1.0.9
+
+# Image processing
+Pillow==10.0.1
+opencv-python==4.8.1.78
+numpy==1.24.3
+
+# OCR (Optical Character Recognition)
+pytesseract==0.3.10
+
+# PDF to image conversion
+pdf2image==1.16.3
