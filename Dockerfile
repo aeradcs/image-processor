@@ -1,39 +1,37 @@
-# Use official Python image
+# Используем официальный Python образ
 FROM python:3.11-slim
 
-# Install system dependencies
+# Устанавливаем системные зависимости
 RUN apt-get update && apt-get install -y \
     tesseract-ocr \
     tesseract-ocr-rus \
     tesseract-ocr-eng \
     poppler-utils \
-    libopencv-dev \
-    python3-opencv \
-    netcat-openbsd \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
+# Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Copy requirements file
+# Копируем requirements.txt и устанавливаем Python зависимости
 COPY requirements.txt .
-
-# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Копируем весь код проекта
 COPY . .
 
-# Create temp directory for processing
+# Создаем директорию для временных файлов
 RUN mkdir -p /tmp/ocr_temp
 
-# Set environment variables
+# Настраиваем переменные окружения
 ENV PYTHONPATH=/app
 ENV TESSERACT_CMD=/usr/bin/tesseract
 
-# Copy wait script
-COPY wait-for-kafka.sh /wait-for-kafka.sh
-RUN chmod +x /wait-for-kafka.sh
-
-# Start application
-CMD ["/wait-for-kafka.sh", "kafka:29092", "--", "python", "main.py"]
+# Запускаем main.py
+CMD ["python", "main.py"]

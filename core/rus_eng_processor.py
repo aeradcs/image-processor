@@ -1,3 +1,5 @@
+import logging
+
 from langdetect import detect
 from PIL import Image
 import pytesseract
@@ -30,51 +32,74 @@ def detect_language_preliminary(file_path):
 
 def process(input_file):
     preliminary_lang = detect_language_preliminary(input_file)
+    logging.error(f"++++++++++++++++rus_eng_processor+++++++++++++++ input_file {input_file} preliminary_lang {preliminary_lang}")
 
     if preliminary_lang == 'ru':
         try:
+            logging.error(f"++++++++++++++++rus_eng_processor+++++++++++++++ ru start processing")
+
             lang, text = russian_ocr.process(input_file)
             if text.strip():
                 actual_lang = detect(text)
+                logging.error(f"++++++++++++++++rus_eng_processor+++++++++++++++ ru actual_lang {actual_lang} text {text}")
                 return actual_lang, text
+            logging.error(f"++++++++++++++++rus_eng_processor+++++++++++++++ ru lang {lang} text {text}")
+
             return lang, text
-        except Exception:
+        except Exception as e:
+            logging.error(f"++++++++++++++++rus_eng_processor+++++++++++++++ ru err {str(e)}")
+
             return english_ocr.process(input_file)
 
     elif preliminary_lang == 'en':
         try:
+            logging.error(f"++++++++++++++++rus_eng_processor+++++++++++++++ eng start processing")
+
             lang, text = english_ocr.process(input_file)
             if text.strip():
                 actual_lang = detect(text)
+                logging.error(f"++++++++++++++++rus_eng_processor+++++++++++++++ eng actual_lang {actual_lang} text {text}")
+
                 return actual_lang, text
+            logging.error(f"++++++++++++++++rus_eng_processor+++++++++++++++ eng lang {lang} text {text}")
+
             return lang, text
-        except Exception:
+        except Exception as e:
+            logging.error(f"++++++++++++++++rus_eng_processor+++++++++++++++ ru err {str(e)}")
+
             return russian_ocr.process(input_file)
 
     else:
         # Unknown language - try both processors
         results = []
+        logging.error(f"++++++++++++++++rus_eng_processor+++++++++++++++ unknown start processing")
 
         try:
             lang, text = russian_ocr.process(input_file)
             if text.strip():
                 results.append(('russian', lang, text, len(text)))
-        except Exception:
-            pass
+                logging.error(f"++++++++++++++++rus_eng_processor+++++++++++++++ unknown 1 processed")
+        except Exception as e:
+            logging.error(f"++++++++++++++++rus_eng_processor+++++++++++++++ unknown 1 err {str(e)}")
 
         try:
             lang, text = english_ocr.process(input_file)
             if text.strip():
                 results.append(('english', lang, text, len(text)))
-        except Exception:
-            pass
+                logging.error(f"++++++++++++++++rus_eng_processor+++++++++++++++ unknown 2 processed")
+
+        except Exception as e:
+            logging.error(f"++++++++++++++++rus_eng_processor+++++++++++++++ unknown 1 err {str(e)}")
 
         if not results:
+            logging.error(f"++++++++++++++++rus_eng_processor+++++++++++++++ unknown Both processors failed to extract text")
+
             raise ValueError("Both processors failed to extract text")
 
         # Choose result with most text content
         best_result = max(results, key=lambda x: x[3])
         _, lang, text, _ = best_result
+        logging.error(f"++++++++++++++++rus_eng_processor+++++++++++++++ finished")
 
         return lang, text
 

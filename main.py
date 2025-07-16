@@ -19,13 +19,14 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    logger.info("Starting Kafka consumer for image processing...")
+    logger.error("----------------main------------------ Starting Kafka consumer for image processing...")
 
     # Инициализируем S3 клиент
     s3_client = S3Client()
 
     # Kafka конфигурация из переменных окружения
     kafka_servers = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092').split(',')
+    logger.error(f"----------------main------------------ s3_client {s3_client} kafka_servers {kafka_servers}")
 
     # Подключение к consumer с retry
     while True:
@@ -38,11 +39,11 @@ def main():
                 enable_auto_commit=True,
                 value_deserializer=lambda m: json.loads(m.decode('utf-8'))
             )
-            logger.info("Consumer connected successfully!")
+            logger.error("----------------main------------------ Consumer connected successfully!")
             break
         except Exception as e:
-            logger.error(f"Failed to connect consumer: {e}")
-            logger.info("Retrying in 5 seconds...")
+            logger.error(f"----------------main------------------ Failed to connect consumer: {str(e)}")
+            logger.error("----------------main------------------ Retrying in 5 seconds...")
             time.sleep(5)
 
     # Подключение к producer с retry
@@ -52,14 +53,14 @@ def main():
                 bootstrap_servers=kafka_servers,
                 value_serializer=lambda v: json.dumps(v).encode('utf-8')
             )
-            logger.info("Producer connected successfully!")
+            logger.error("----------------main------------------ Producer connected successfully!")
             break
         except Exception as e:
-            logger.error(f"Failed to connect producer: {e}")
-            logger.info("Retrying in 5 seconds...")
+            logger.error(f"----------------main------------------ Failed to connect producer: {str(e)}")
+            logger.error("----------------main------------------ Retrying in 5 seconds...")
             time.sleep(5)
 
-    logger.info("Waiting for messages...")
+    logger.error("----------------main------------------ Waiting for messages...")
 
     for message in consumer:
         file_url = None
@@ -73,15 +74,16 @@ def main():
             if not file_url:
                 raise ValueError("file_url не найден в сообщении")
 
-            logger.info(f"Processing file: {file_url}")
+            logger.error(f"----------------main------------------ Processing file: file_url {file_url}")
 
             # Скачиваем файл из S3
             local_file_path = s3_client.download_file(file_url)
+            logger.error(f"----------------main------------------ Processing file: local_file_path {local_file_path}")
 
             # Обрабатываем файл с помощью OCR
             language, text = process(local_file_path)
 
-            logger.info(f"Processing completed: lang={language}, text_length={len(text)}, text={text}")
+            logger.error(f"----------------main------------------ Processing completed: lang={language}, text_length={len(text)}, text={text}")
 
             # Формируем успешный ответ
             response = {
@@ -94,7 +96,7 @@ def main():
 
         except Exception as e:
             error_msg = str(e)
-            logger.error(f"Error processing {file_url}: {error_msg}")
+            logger.error(f"----------------main------------------ Error processing {file_url}: {error_msg}")
 
             # Формируем ответ с ошибкой
             response = {
@@ -114,9 +116,9 @@ def main():
         try:
             producer.send('image-recognition-responses', response)
             producer.flush()
-            logger.info(f"Response sent for {file_url}")
+            logger.error(f"----------------main------------------ Response sent for {file_url}")
         except Exception as e:
-            logger.error(f"Failed to send response: {e}")
+            logger.error(f"----------------main------------------ Failed to send response: {e}")
 
 
 if __name__ == "__main__":
