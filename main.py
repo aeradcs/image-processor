@@ -34,9 +34,7 @@ def main():
             consumer = KafkaConsumer(
                 'image-recognition-requests',
                 bootstrap_servers=kafka_servers,
-                group_id='image-recognition-group',
-                auto_offset_reset='earliest',
-                enable_auto_commit=True,
+                group_id='image-recognition-requests-group',
                 value_deserializer=lambda m: json.loads(m.decode('utf-8'))
             )
             logger.error("----------------main------------------ Consumer connected successfully!")

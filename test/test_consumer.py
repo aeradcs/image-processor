@@ -10,9 +10,7 @@ def main():
         consumer = KafkaConsumer(
             'image-recognition-responses',
             bootstrap_servers=['localhost:9092'],
-            group_id='test-consumer-group',
-            auto_offset_reset='latest',
-            enable_auto_commit=True,
+            group_id='image-recognition-responses-group',
             value_deserializer=lambda m: json.loads(m.decode('utf-8'))
         )
         print("Connected to Kafka. Waiting for responses...")
